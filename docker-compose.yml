@@ -1,0 +1,61 @@
+version: '3'
+
+networks:
+  app_network:
+    driver: bridge
+
+services:
+  frontend:
+    build: ./frontend
+    container_name: app_frontend
+    restart: always
+    networks:
+      - app_network
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    container_name: app_backend
+    restart: always
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=appdb
+      - DB_PORT=5432
+    networks:
+      - app_network
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:13
+    container_name: app_postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=appdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app_network
+
+  nginx:
+    build: ./nginx
+    container_name: app_nginx
+    restart: always
+    ports:
+      - "80:80"
+    networks:
+      - app_network
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
